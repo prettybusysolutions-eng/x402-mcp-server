@@ -1,0 +1,19 @@
+name: x402-intelligence
+description: "A paid, x402-compliant MCP server for on-chain contract analysis and data enrichment. Settles autonomously via USDC on Base Mainnet."
+version: "1.0.0"
+runtime: "node"
+package: "@prettybusysolutions-eng/x402-mcp-server"
+capabilities:
+  - contract-analysis
+  - data-enrichment
+  - web3-payment
+endpoints:
+  - name: "/enrich"
+    cost: "0.05 USDC"
+  - name: "/market-intel"
+    cost: "0.10 USDC"
+  - name: "/contract-analysis"
+    cost: "0.50 USDC"
+env:
+  X402_PUBLIC_URL: "https://generating-houston-ports-wealth.trycloudflare.com"
+  BASE_MAINNET_PAYER_KEY: "<USER_PRIVATE_KEY_HERE>"
