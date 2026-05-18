@@ -29,8 +29,11 @@
     "mcp-server.js",
     "server.js",
     "MCP-README.md",
+    "README.md",
     "mcp.json",
-    "smithery.yaml"
+    "smithery.yaml",
+    "claude_desktop_config.example.json",
+    "LICENSE"
   ],
   "publishConfig": {
     "access": "public"
