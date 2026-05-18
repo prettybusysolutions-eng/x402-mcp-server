@@ -1,10 +1,10 @@
 {
-  "name": "@prettybusysolutions-eng/x402-mcp-server",
+  "name": "@xzenithai/x402-mcp-server",
   "version": "1.0.0",
   "description": "A paid, x402-compliant MCP server for on-chain contract analysis and data enrichment. Settles autonomously via USDC on Base Mainnet.",
   "main": "mcp-server.js",
   "bin": {
-    "x402-mcp-server": "./mcp-server.js"
+    "x402-mcp-server": "mcp-server.js"
   },
   "scripts": {
     "test": "node -c mcp-server.js",

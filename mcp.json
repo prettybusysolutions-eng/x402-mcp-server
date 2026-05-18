@@ -3,7 +3,7 @@
   "description": "A paid, x402-compliant MCP server for on-chain contract analysis and data enrichment. Settles autonomously via USDC on Base Mainnet.",
   "version": "1.0.0",
   "runtime": "node",
-  "package": "@prettybusysolutions-eng/x402-mcp-server",
+  "package": "@xzenithai/x402-mcp-server",
   "capabilities": [
     "contract-analysis",
     "data-enrichment",

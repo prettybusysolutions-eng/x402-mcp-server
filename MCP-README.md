@@ -5,7 +5,7 @@ A paid, x402-compliant MCP server for on-chain contract analysis and data enrich
 ## Install / run with `npx`
 
 ```bash
-npx -y @prettybusysolutions-eng/x402-mcp-server
+npx -y @xzenithai/x402-mcp-server
 ```
 
 ## Claude Desktop config
@@ -19,7 +19,7 @@ Copy-paste into `claude_desktop_config.json`:
       "command": "npx",
       "args": [
         "-y",
-        "@prettybusysolutions-eng/x402-mcp-server"
+        "@xzenithai/x402-mcp-server"
       ],
       "env": {
         "X402_PUBLIC_URL": "https://generating-houston-ports-wealth.trycloudflare.com",
