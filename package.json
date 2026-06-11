@@ -7,7 +7,7 @@
     "x402-mcp-server": "mcp-server.js"
   },
   "scripts": {
-    "test": "node -c mcp-server.js",
+    "test": "node --check mcp-server.js && node --check server.js && node --test",
     "start": "node server.js",
     "mcp:start": "node mcp-server.js",
     "mcp:meta": "mcporter call --stdio 'node mcp-server.js' x402_metadata"
