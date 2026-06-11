@@ -47,6 +47,9 @@ const NETWORK = process.env.X402_NETWORK || 'eip155:84532';
 const IS_MAINNET = NETWORK === 'eip155:8453';
 const CDP_HOST = 'api.cdp.coinbase.com';
 const REQUEST_LOG_DB = process.env.X402_REQUEST_LOG_DB || path.join(ROOT, 'x402-requests.sqlite3');
+const PREFLIGHT_PRICE_USDC = 5;
+const FIRST_REVENUE_TARGET_USDC = 100;
+const DAILY_REVENUE_TARGET_USDC = 100;
 
 const ROUTES = [
   {
@@ -133,6 +136,41 @@ const ROUTES = [
       },
     },
   },
+  {
+    method: 'POST',
+    path: '/revenue-friction-preflight',
+    price: '$5.00',
+    description: 'Evidence-bound public website revenue-friction preflight',
+    config: {
+      description: 'Inspect public website signals that may create purchase friction without claiming recovered revenue',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          company: { type: 'string', description: 'Company name' },
+          website: { type: 'string', description: 'Public website URL' },
+          domain: { type: 'string', description: 'Public website domain' },
+          pageText: { type: 'string', description: 'Optional buyer-supplied public page text' },
+        },
+        anyOf: [
+          { required: ['website'] },
+          { required: ['domain'] },
+          { required: ['pageText'] },
+        ],
+        additionalProperties: false,
+      },
+      outputSchema: {
+        type: 'object',
+        properties: {
+          ok: { type: 'boolean' },
+          evidenceQuality: { type: 'string' },
+          observedSignals: { type: 'array' },
+          frictionFindings: { type: 'array' },
+          verifiedRecoverableRevenueUsd: { type: 'number' },
+          limitations: { type: 'array' },
+        },
+      },
+    },
+  },
 ];
 
 function readPublicUrl() {
@@ -212,6 +250,64 @@ function insertRequestLog(fields) {
   }
 }
 
+function settledPreflightSales() {
+  try {
+    const value = run('sqlite3', [
+      REQUEST_LOG_DB,
+      `SELECT COUNT(DISTINCT settlement_tx_hash)
+       FROM request_log
+       WHERE endpoint = '/revenue-friction-preflight'
+         AND status_code BETWEEN 200 AND 299
+         AND settlement_tx_hash IS NOT NULL
+         AND settlement_tx_hash != '';`,
+    ]);
+    return Number(value) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function buildRevenueLoopStatus(settledSales = 0) {
+  const verifiedGrossUsdc = settledSales * PREFLIGHT_PRICE_USDC;
+  const salesPerTarget = Math.ceil(DAILY_REVENUE_TARGET_USDC / PREFLIGHT_PRICE_USDC);
+  return {
+    ok: true,
+    product: {
+      endpoint: '/revenue-friction-preflight',
+      unitPriceUsdc: PREFLIGHT_PRICE_USDC,
+      fulfillment: 'automatic_after_verified_x402_settlement',
+      marginalWalletSpendUsdc: 0,
+    },
+    verified: {
+      uniqueSettledSales: settledSales,
+      grossRevenueUsdc: verifiedGrossUsdc,
+      firstTargetUsdc: FIRST_REVENUE_TARGET_USDC,
+      remainingToFirstTargetUsdc: Math.max(0, FIRST_REVENUE_TARGET_USDC - verifiedGrossUsdc),
+      firstTargetComplete: verifiedGrossUsdc >= FIRST_REVENUE_TARGET_USDC,
+    },
+    dailyTarget: {
+      grossRevenueUsdc: DAILY_REVENUE_TARGET_USDC,
+      requiredSettledSales: salesPerTarget,
+      status: 'target_not_guarantee',
+    },
+    allocationPolicy: {
+      walletReservePercent: 80,
+      reinvestmentReservePercent: 20,
+      automaticWalletSpending: false,
+      note: 'Reinvestment is reserved in the ledger and requires a separately approved external spend.',
+    },
+    closedLoop: [
+      'A buyer or authorized agent discovers the paid resource.',
+      'The buyer settles exactly 5 USDC on Base through x402.',
+      'The service fulfills one evidence-bound report automatically.',
+      'The unique settlement transaction is recorded as verified gross revenue.',
+      'Eighty percent remains wallet reserve; twenty percent becomes an approval-gated reinvestment reserve.',
+      'Capacity and discovery improve only from settled external revenue.',
+    ],
+    truthBoundary: 'Self-payments, failed settlements, duplicate transaction hashes, and unpaid requests do not count as revenue.',
+  };
+}
+
 function createRequestLogger() {
   return (req, res, next) => {
     req.requestLogContext = {
@@ -268,10 +364,37 @@ function runSearch(query, limit = 5) {
 }
 
 function fetchUrl(url) {
+  if (!isSafePublicUrl(url)) return '';
   try {
-    return run('curl', ['-LfsS', '--max-time', '12', '-A', 'Mozilla/5.0', url], { timeout: 14000 });
+    return run('curl', [
+      '-LfsS',
+      '--max-time', '12',
+      '--max-redirs', '4',
+      '--proto', '=http,https',
+      '--proto-redir', '=http,https',
+      '-A', 'Mozilla/5.0',
+      url,
+    ], { timeout: 14000 });
   } catch {
     return '';
+  }
+}
+
+function isSafePublicUrl(value) {
+  try {
+    const parsed = new URL(value);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return false;
+    if (parsed.username || parsed.password) return false;
+    const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+    if (!host || host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local')) return false;
+    if (host === '::1' || host === '0.0.0.0') return false;
+    if (/^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host)) return false;
+    const match172 = host.match(/^172\.(\d+)\./);
+    if (match172 && Number(match172[1]) >= 16 && Number(match172[1]) <= 31) return false;
+    if (/^169\.254\./.test(host)) return false;
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -581,6 +704,127 @@ function extractContractTerms(text, company) {
   };
 }
 
+function revenueFrictionPreflight(payload = {}) {
+  const company = payload.company || null;
+  const requestedUrl = normalizeUrl(payload.website || payload.domain || null);
+  const suppliedText = String(payload.pageText || '').trim();
+  const fetchedHtml = requestedUrl ? fetchUrl(requestedUrl) : '';
+  const sourceText = suppliedText || stripTags(fetchedHtml);
+  const searchable = `${fetchedHtml}\n${sourceText}`.toLowerCase();
+  const observedSignals = [];
+
+  const checks = [
+    {
+      id: 'visible_pricing',
+      label: 'Visible pricing',
+      pattern: /(?:\$|usd\s*)\d+(?:[.,]\d{1,2})?|pricing|plans?\s+(?:start|from|at)/i,
+    },
+    {
+      id: 'purchase_cta',
+      label: 'Purchase or booking call to action',
+      pattern: /buy now|checkout|book now|schedule|start trial|get started|request (?:a )?quote|subscribe/i,
+    },
+    {
+      id: 'payment_provider',
+      label: 'Payment-provider integration',
+      pattern: /stripe|paypal|squareup|shopify|paddle|braintree|authorize\.net/i,
+    },
+    {
+      id: 'contact_path',
+      label: 'Contact path',
+      pattern: /mailto:|tel:|contact us|contact form|support@|sales@/i,
+    },
+    {
+      id: 'recurring_terms',
+      label: 'Recurring-price or subscription language',
+      pattern: /per month|monthly|per year|annual(?:ly)?|subscription|recurring|auto[- ]renew/i,
+    },
+    {
+      id: 'analytics',
+      label: 'Analytics or conversion tracking',
+      pattern: /googletagmanager|gtag\(|google-analytics|segment\.com|mixpanel|amplitude|facebook\.net\/en_us\/fbevents/i,
+    },
+  ];
+
+  for (const check of checks) {
+    if (check.pattern.test(searchable)) {
+      observedSignals.push({
+        id: check.id,
+        label: check.label,
+        observed: true,
+        evidenceSource: fetchedHtml ? requestedUrl : 'buyer_supplied_page_text',
+      });
+    }
+  }
+
+  const observedIds = new Set(observedSignals.map((item) => item.id));
+  const frictionFindings = [];
+  const addFinding = (id, severity, observation, validation) => {
+    frictionFindings.push({ id, severity, observation, validation });
+  };
+
+  if (!observedIds.has('purchase_cta')) {
+    addFinding(
+      'purchase_path_not_observed',
+      'medium',
+      'No clear purchase, booking, trial, subscription, or quote call to action was observed in the inspected content.',
+      'Confirm the intended conversion action and inspect the rendered page before changing the site.',
+    );
+  }
+  if (!observedIds.has('visible_pricing')) {
+    addFinding(
+      'pricing_not_observed',
+      'low',
+      'No visible price or pricing-plan language was observed in the inspected content.',
+      'Confirm whether pricing is intentionally private and compare qualified conversion rates before testing disclosure.',
+    );
+  }
+  if (!observedIds.has('contact_path')) {
+    addFinding(
+      'contact_path_not_observed',
+      'medium',
+      'No obvious contact route was observed in the inspected content.',
+      'Verify contact and support routes in the rendered page and navigation.',
+    );
+  }
+  if (!observedIds.has('analytics')) {
+    addFinding(
+      'conversion_measurement_not_observed',
+      'medium',
+      'No common analytics or conversion-tracking marker was observed in the retrieved source.',
+      'Verify analytics through browser developer tools; absence in source does not prove tracking is missing.',
+    );
+  }
+
+  const evidenceQuality = fetchedHtml
+    ? 'direct_public_page_source'
+    : suppliedText
+      ? 'buyer_supplied_public_text'
+      : 'insufficient_evidence';
+
+  return {
+    ok: Boolean(fetchedHtml || suppliedText),
+    endpoint: '/revenue-friction-preflight',
+    generatedAt: new Date().toISOString(),
+    company,
+    target: requestedUrl,
+    evidenceQuality,
+    observedSignals,
+    frictionFindings,
+    verifiedRecoverableRevenueUsd: 0,
+    decisionBoundary: 'These are observable friction hypotheses, not proof of lost or recoverable revenue.',
+    recommendedNextStep: frictionFindings.length
+      ? 'Validate one finding with rendered-page evidence and a measured conversion test.'
+      : 'Preserve the observed purchase path and verify it with transaction-level conversion data.',
+    sources: fetchedHtml && requestedUrl ? [requestedUrl] : [],
+    limitations: [
+      'This preflight does not access private billing, analytics, CRM, or payment data.',
+      'Source-code inspection may miss dynamically rendered controls and client-side tracking.',
+      'No revenue amount is inferred from public website signals.',
+    ],
+  };
+}
+
 function buildDiscovery(baseUrl) {
   return {
     ok: true,
@@ -694,7 +938,15 @@ function buildRouteConfig(route) {
         ? { ok: true, endpoint: '/enrich', company: { name: 'Acme', domain: 'acme.com' } }
         : route.path === '/market-intel'
           ? { ok: true, endpoint: '/market-intel', market: { sector: 'property management', geo: 'Tampa' } }
-          : { ok: true, endpoint: '/contract-analysis', riskScore: 42, redFlags: [] },
+          : route.path === '/contract-analysis'
+            ? { ok: true, endpoint: '/contract-analysis', riskScore: 42, redFlags: [] }
+            : {
+                ok: true,
+                endpoint: '/revenue-friction-preflight',
+                evidenceQuality: 'direct_public_page_source',
+                frictionFindings: [],
+                verifiedRecoverableRevenueUsd: 0,
+              },
     },
   });
 
@@ -801,6 +1053,11 @@ async function start() {
     flushRequestLog(req, res);
   });
 
+  app.get('/revenue-loop', (req, res) => {
+    res.json(buildRevenueLoopStatus(settledPreflightSales()));
+    flushRequestLog(req, res);
+  });
+
   app.get('/.well-known/x402', (req, res) => {
     const baseUrl = readPublicUrl() || `${req.protocol}://${req.get('host')}`;
     res.json(buildDiscovery(baseUrl));
@@ -855,6 +1112,11 @@ async function start() {
     flushRequestLog(req, res);
   });
 
+  app.post('/revenue-friction-preflight', (req, res) => {
+    res.json(revenueFrictionPreflight(req.body || {}));
+    flushRequestLog(req, res);
+  });
+
   app.listen(PORT, HOST, () => {
     console.log(`x402 service listening on ${HOST}:${PORT}`);
     console.log(`network: ${NETWORK}`);
@@ -867,6 +1129,9 @@ module.exports = {
   enrichCompany,
   marketIntel,
   extractContractTerms,
+  revenueFrictionPreflight,
+  isSafePublicUrl,
+  buildRevenueLoopStatus,
   buildDiscovery,
   readPublicUrl,
 };
