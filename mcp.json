@@ -1,13 +1,14 @@
 {
   "name": "x402-intelligence",
   "description": "A paid, x402-compliant MCP server for on-chain contract analysis and data enrichment. Settles autonomously via USDC on Base Mainnet.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "runtime": "node",
   "package": "@xzenithai/x402-mcp-server",
   "capabilities": [
     "contract-analysis",
     "data-enrichment",
-    "web3-payment"
+    "web3-payment",
+    "proof-bound-autonomous-labor"
   ],
   "endpoints": [
     {
@@ -23,6 +24,12 @@
       "cost": "0.50 USDC"
     }
   ],
+  "firstDollarProofPacket": {
+    "humanUrl": "https://prettybusysolutions-eng.github.io/xzenia-leaklock/first-dollar.html",
+    "offerManifestUrl": "https://prettybusysolutions-eng.github.io/xzenia-leaklock/first-dollar-offer.json",
+    "price": "1 USD",
+    "boundary": "Public self-serve proof packet; no private data, dashboard access, or recovered-revenue claim."
+  },
   "env": {
     "X402_PUBLIC_URL": "https://generating-houston-ports-wealth.trycloudflare.com",
     "BASE_MAINNET_PAYER_KEY": "<USER_PRIVATE_KEY_HERE>"

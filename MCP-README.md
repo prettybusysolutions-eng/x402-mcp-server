@@ -11,6 +11,10 @@ This public packet shows the governed-action/refusal boundary used by Xzenia
 without requiring private data, dashboard credentials, wallet handoff, or a
 consulting intake.
 
+Truth boundary: a page view, package install, or checkout start is not revenue.
+The first dollar only counts after Stripe reports a paid checkout session for
+the proof packet.
+
 ## Install / run with `npx`
 
 ```bash

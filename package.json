@@ -1,6 +1,6 @@
 {
   "name": "@xzenithai/x402-mcp-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A paid, x402-compliant MCP server for on-chain contract analysis and data enrichment. Settles autonomously via USDC on Base Mainnet.",
   "main": "mcp-server.js",
   "bin": {
