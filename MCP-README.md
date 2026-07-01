@@ -2,6 +2,15 @@
 
 A paid, x402-compliant MCP server for on-chain contract analysis and data enrichment. Settles autonomously via USDC on Base Mainnet.
 
+## $1 Xzenia Airlock proof packet
+
+- Human page: https://prettybusysolutions-eng.github.io/xzenia-leaklock/first-dollar.html
+- Machine-readable offer: https://prettybusysolutions-eng.github.io/xzenia-leaklock/first-dollar-offer.json
+
+This public packet shows the governed-action/refusal boundary used by Xzenia
+without requiring private data, dashboard credentials, wallet handoff, or a
+consulting intake.
+
 ## Install / run with `npx`
 
 ```bash
