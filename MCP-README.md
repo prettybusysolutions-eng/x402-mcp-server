@@ -37,7 +37,7 @@ Copy-paste into `claude_desktop_config.json`:
         "@xzenithai/x402-mcp-server"
       ],
       "env": {
-        "X402_PUBLIC_URL": "https://generating-houston-ports-wealth.trycloudflare.com",
+        "X402_PUBLIC_URL": "https://clan-achieve-match-alumni.trycloudflare.com",
         "BASE_MAINNET_PAYER_KEY": "<USER_PRIVATE_KEY_HERE>"
       }
     }
@@ -62,7 +62,7 @@ Copy-paste into `claude_desktop_config.json`:
 
 ## Environment
 
-- `X402_PUBLIC_URL` — public x402 base URL, e.g. `https://generating-houston-ports-wealth.trycloudflare.com`
+- `X402_PUBLIC_URL` — public x402 base URL, e.g. `https://clan-achieve-match-alumni.trycloudflare.com`
 - `BASE_MAINNET_PAYER_KEY` — Base mainnet private key used to satisfy x402 payment challenges
 - `BASE_RPC_URL` — optional RPC override; defaults to `https://mainnet.base.org`
 - `X402_PAYER_KEY_FILE` — optional local key file fallback when `BASE_MAINNET_PAYER_KEY` is not set

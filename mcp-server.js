@@ -169,21 +169,23 @@ async function main() {
       title: 'x402 metadata',
       description: 'Return the active Xzenia public discovery, OpenAPI, llms, and payment metadata.',
     },
-    async () => asToolResult({
-      baseUrl: getBaseUrl(),
-      discoveryUrl: `${getBaseUrl()}/.well-known/x402`,
-      openapiUrl: 'https://becoming-comes-regard-physicians.trycloudflare.com/openapi-x402.json',
-      llmsUrl: 'https://becoming-comes-regard-physicians.trycloudflare.com/llms.txt',
-      llmsFullUrl: 'https://becoming-comes-regard-physicians.trycloudflare.com/llms-full.txt',
-      catalogUrl: 'https://becoming-comes-regard-physicians.trycloudflare.com/product-catalog.html',
-      prices: {
-        enrich: '$0.05',
-        market_intel: '$0.10',
-        contract_analysis: '$0.50',
-        airlock_proof_packet: '$1.00',
-      },
-      note: 'Paid tool calls spend real USDC on Base via x402 exact.'
-    })
+    async () => {
+      const baseUrl = getBaseUrl();
+      return asToolResult({
+        baseUrl,
+        discoveryUrl: `${baseUrl}/.well-known/x402`,
+        openapiUrl: `${baseUrl}/openapi.json`,
+        llmsUrl: `${baseUrl}/llms.txt`,
+        aiPluginUrl: `${baseUrl}/.well-known/ai-plugin.json`,
+        prices: {
+          enrich: '$0.05',
+          market_intel: '$0.10',
+          contract_analysis: '$0.50',
+          airlock_proof_packet: '$1.00',
+        },
+        note: 'Paid tool calls spend real USDC on Base via x402 exact.'
+      });
+    }
   );
 
   server.registerTool(
