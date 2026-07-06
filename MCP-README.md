@@ -4,6 +4,7 @@ A paid, x402-compliant MCP server for on-chain contract analysis and data enrich
 
 ## $1 Xzenia Airlock proof packet
 
+- x402 route: `POST /airlock-proof-packet` — `1.00 USDC`
 - Human page: https://prettybusysolutions-eng.github.io/xzenia-leaklock/first-dollar.html
 - Machine-readable offer: https://prettybusysolutions-eng.github.io/xzenia-leaklock/first-dollar-offer.json
 
@@ -12,8 +13,9 @@ without requiring private data, dashboard credentials, wallet handoff, or a
 consulting intake.
 
 Truth boundary: a page view, package install, or checkout start is not revenue.
-The first dollar only counts after Stripe reports a paid checkout session for
-the proof packet.
+The first dollar only counts after Stripe reports a paid checkout session or the
+x402 request ledger records a unique settled external transaction for the proof
+packet.
 
 ## Install / run with `npx`
 
@@ -48,6 +50,7 @@ Copy-paste into `claude_desktop_config.json`:
 - `x402_metadata`
 - `enrich`
 - `market_intel`
+- `airlock_proof_packet`
 - `contract_analysis`
 
 ## Endpoint economics
@@ -55,6 +58,7 @@ Copy-paste into `claude_desktop_config.json`:
 - `/enrich` — `0.05 USDC`
 - `/market-intel` — `0.10 USDC`
 - `/contract-analysis` — `0.50 USDC`
+- `/airlock-proof-packet` — `1.00 USDC`
 
 ## Environment
 
@@ -68,6 +72,7 @@ Copy-paste into `claude_desktop_config.json`:
 ```bash
 mcporter call --stdio "node mcp-server.js" x402_metadata
 mcporter call --stdio "node mcp-server.js" enrich company="Acme" domain=acme.com website=https://acme.com
+npm run x402:verify -- http://127.0.0.1:8794
 ```
 
 ## Important

@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const {
+  airlockProofPacket,
   buildRevenueLoopStatus,
   buildDiscovery,
   isSafePublicUrl,
@@ -47,6 +48,29 @@ test('x402 discovery exposes one 5 USDC preflight route', () => {
   assert.equal(route.pricing.price, '$5.00');
   assert.equal(route.pricing.network, 'eip155:84532');
   assert.equal(route.pricing.payTo, '0x75aAbC3D213fBC8482f0bA2aEc36ad184301B50a');
+});
+
+test('x402 discovery exposes 1 USDC machine-payer proof packet route', () => {
+  const discovery = buildDiscovery('https://seller.example');
+  const route = discovery.routes.find((item) => item.path === '/airlock-proof-packet');
+
+  assert.ok(route);
+  assert.equal(route.pricing.price, '$1.00');
+  assert.equal(route.pricing.network, 'eip155:84532');
+  assert.equal(route.pricing.payTo, '0x75aAbC3D213fBC8482f0bA2aEc36ad184301B50a');
+  assert.equal(route.config.inputSchema.additionalProperties, false);
+});
+
+test('airlock proof packet stays public and truth-bound', () => {
+  const result = airlockProofPacket({ buyerAgent: 'test-agent', purpose: 'first-dollar-check' });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.endpoint, '/airlock-proof-packet');
+  assert.equal(result.offerId, 'xzenia.airlock.machine-payer.usdc-1.v1');
+  assert.equal(result.buyerAgent, 'test-agent');
+  assert.equal(result.truthBoundary.selfPaymentCountsAsRevenue, false);
+  assert.equal(result.truthBoundary.noSensitiveDataRequired, true);
+  assert.match(result.artifact.humanUrl, /^https:\/\/prettybusysolutions-eng\.github\.io\//);
 });
 
 test('revenue loop counts only settled sales supplied by the ledger', () => {

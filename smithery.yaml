@@ -15,6 +15,8 @@ endpoints:
     cost: "0.10 USDC"
   - name: "/contract-analysis"
     cost: "0.50 USDC"
+  - name: "/airlock-proof-packet"
+    cost: "1.00 USDC"
 firstDollarProofPacket:
   humanUrl: "https://prettybusysolutions-eng.github.io/xzenia-leaklock/first-dollar.html"
   offerManifestUrl: "https://prettybusysolutions-eng.github.io/xzenia-leaklock/first-dollar-offer.json"

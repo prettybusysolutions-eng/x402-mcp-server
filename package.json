@@ -10,7 +10,8 @@
     "test": "node --check mcp-server.js && node --check server.js && node --test",
     "start": "node server.js",
     "mcp:start": "node mcp-server.js",
-    "mcp:meta": "mcporter call --stdio 'node mcp-server.js' x402_metadata"
+    "mcp:meta": "mcporter call --stdio 'node mcp-server.js' x402_metadata",
+    "x402:verify": "node scripts/verify-x402-machine-payer-readiness.mjs"
   },
   "keywords": [
     "mcp",
@@ -30,6 +31,7 @@
     "server.js",
     "MCP-README.md",
     "README.md",
+    "scripts/verify-x402-machine-payer-readiness.mjs",
     "mcp.json",
     "smithery.yaml",
     "claude_desktop_config.example.json",

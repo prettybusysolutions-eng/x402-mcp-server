@@ -138,6 +138,33 @@ const ROUTES = [
   },
   {
     method: 'POST',
+    path: '/airlock-proof-packet',
+    price: '$1.00',
+    description: 'Xzenia Airlock proof-bound autonomous labor packet',
+    config: {
+      description: 'Return the public proof packet for proof-bound autonomous labor after exact x402 settlement',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          buyerAgent: { type: 'string', description: 'Optional calling agent or client name' },
+          purpose: { type: 'string', description: 'Optional reason for retrieving the packet' },
+        },
+        additionalProperties: false,
+      },
+      outputSchema: {
+        type: 'object',
+        properties: {
+          ok: { type: 'boolean' },
+          endpoint: { type: 'string' },
+          offerId: { type: 'string' },
+          artifact: { type: 'object' },
+          truthBoundary: { type: 'object' },
+        },
+      },
+    },
+  },
+  {
+    method: 'POST',
     path: '/revenue-friction-preflight',
     price: '$5.00',
     description: 'Evidence-bound public website revenue-friction preflight',
@@ -825,6 +852,40 @@ function revenueFrictionPreflight(payload = {}) {
   };
 }
 
+function airlockProofPacket(payload = {}) {
+  return {
+    ok: true,
+    endpoint: '/airlock-proof-packet',
+    generatedAt: new Date().toISOString(),
+    offerId: 'xzenia.airlock.machine-payer.usdc-1.v1',
+    buyerAgent: payload.buyerAgent || null,
+    purpose: payload.purpose || null,
+    artifact: {
+      title: 'Xzenia Airlock First-Dollar Proof Packet',
+      summary: 'A public proof packet for proof-bound autonomous labor: exact authorization gates, refusal evidence, provider-observed execution, and truth boundaries.',
+      humanUrl: 'https://prettybusysolutions-eng.github.io/xzenia-leaklock/first-dollar.html',
+      offerManifestUrl: 'https://prettybusysolutions-eng.github.io/xzenia-leaklock/first-dollar-offer.json',
+      packageRepository: 'https://github.com/prettybusysolutions-eng/x402-mcp-server',
+      proofFiles: [
+        'commercial/xzenia-first-dollar-distribution-proof-20260701.md',
+        'commercial/xzenia-first-dollar-superteam-imperial-submission-packet-20260701.md',
+      ],
+    },
+    truthBoundary: {
+      externalPaymentRequired: true,
+      selfPaymentCountsAsRevenue: false,
+      noSensitiveDataRequired: true,
+      noRecoveredRevenueClaim: true,
+      noSecurityCertificationClaim: true,
+    },
+    fulfillment: {
+      mode: 'automatic_after_verified_x402_settlement',
+      delivered: true,
+      nextStep: 'If the buyer wants a custom audit, request a separate human-approved scope. This endpoint only delivers the public proof packet.',
+    },
+  };
+}
+
 function buildDiscovery(baseUrl) {
   return {
     ok: true,
@@ -940,13 +1001,23 @@ function buildRouteConfig(route) {
           ? { ok: true, endpoint: '/market-intel', market: { sector: 'property management', geo: 'Tampa' } }
           : route.path === '/contract-analysis'
             ? { ok: true, endpoint: '/contract-analysis', riskScore: 42, redFlags: [] }
-            : {
-                ok: true,
-                endpoint: '/revenue-friction-preflight',
-                evidenceQuality: 'direct_public_page_source',
-                frictionFindings: [],
-                verifiedRecoverableRevenueUsd: 0,
-              },
+            : route.path === '/airlock-proof-packet'
+              ? {
+                  ok: true,
+                  endpoint: '/airlock-proof-packet',
+                  offerId: 'xzenia.airlock.machine-payer.usdc-1.v1',
+                  artifact: {
+                    title: 'Xzenia Airlock First-Dollar Proof Packet',
+                    humanUrl: 'https://prettybusysolutions-eng.github.io/xzenia-leaklock/first-dollar.html',
+                  },
+                }
+              : {
+                  ok: true,
+                  endpoint: '/revenue-friction-preflight',
+                  evidenceQuality: 'direct_public_page_source',
+                  frictionFindings: [],
+                  verifiedRecoverableRevenueUsd: 0,
+                },
     },
   });
 
@@ -1112,6 +1183,11 @@ async function start() {
     flushRequestLog(req, res);
   });
 
+  app.post('/airlock-proof-packet', (req, res) => {
+    res.json(airlockProofPacket(req.body || {}));
+    flushRequestLog(req, res);
+  });
+
   app.post('/revenue-friction-preflight', (req, res) => {
     res.json(revenueFrictionPreflight(req.body || {}));
     flushRequestLog(req, res);
@@ -1130,6 +1206,7 @@ module.exports = {
   marketIntel,
   extractContractTerms,
   revenueFrictionPreflight,
+  airlockProofPacket,
   isSafePublicUrl,
   buildRevenueLoopStatus,
   buildDiscovery,

@@ -22,6 +22,7 @@ const ENDPOINTS = {
   enrich: { path: '/enrich', minUsdc: 0.05 },
   market_intel: { path: '/market-intel', minUsdc: 0.10 },
   contract_analysis: { path: '/contract-analysis', minUsdc: 0.50 },
+  airlock_proof_packet: { path: '/airlock-proof-packet', minUsdc: 1.00 },
 };
 
 function loadEnvFile(filePath) {
@@ -179,6 +180,7 @@ async function main() {
         enrich: '$0.05',
         market_intel: '$0.10',
         contract_analysis: '$0.50',
+        airlock_proof_packet: '$1.00',
       },
       note: 'Paid tool calls spend real USDC on Base via x402 exact.'
     })
@@ -210,6 +212,19 @@ async function main() {
       },
     },
     async (args) => asToolResult(await callPaidEndpoint('market_intel', args))
+  );
+
+  server.registerTool(
+    'airlock_proof_packet',
+    {
+      title: 'Airlock proof packet',
+      description: 'Pay the live x402 /airlock-proof-packet endpoint and return the public proof packet.',
+      inputSchema: {
+        buyerAgent: z.string().optional(),
+        purpose: z.string().optional(),
+      },
+    },
+    async (args) => asToolResult(await callPaidEndpoint('airlock_proof_packet', args))
   );
 
   server.registerTool(
