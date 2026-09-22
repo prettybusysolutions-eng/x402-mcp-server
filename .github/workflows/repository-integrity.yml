@@ -17,5 +17,21 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
-      - run: npm test --if-present
+      - run: npm test
       - run: npm run build --if-present
+
+      - name: Package tested source for local evaluation
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/evaluation"
+          git rev-parse HEAD > "$RUNNER_TEMP/evaluation/COMMIT.txt"
+          git archive --format=tar.gz --prefix=source/ HEAD > "$RUNNER_TEMP/evaluation/source.tar.gz"
+          cd "$RUNNER_TEMP/evaluation"
+          sha256sum source.tar.gz > SHA256SUMS
+      - name: Upload evaluation bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: evaluation-${{ github.sha }}
+          path: ${{ runner.temp }}/evaluation/
+          if-no-files-found: error
+          retention-days: 30
