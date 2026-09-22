@@ -2,7 +2,20 @@
 
 A paid, x402-compliant MCP server for on-chain contract analysis and data enrichment. Settles autonomously via USDC on Base Mainnet.
 
-See `MCP-README.md` for the registry bundle, Claude Desktop configuration block, and usage details.
+**Start here:** [run the credential-free MCP quickstart](QUICKSTART.md).
+
+See [MCP-README.md](MCP-README.md) for the registry bundle, Claude Desktop
+configuration block, tools, endpoint economics, and paid-call requirements.
+
+## What can be evaluated without payment
+
+- install and dependency integrity with `npm ci`;
+- syntax and behavioral tests with `npm test`;
+- MCP server startup and `x402_metadata` discovery;
+- configuration examples for compatible MCP clients.
+
+Paid tool calls use real USDC on Base mainnet. Do not configure a payer key for
+the credential-free evaluation path.
 
 ## Xzenia Airlock proof packet
 
@@ -25,3 +38,8 @@ Revenue truth boundary: a page view, package install, or checkout start is not
 revenue. The first dollar only counts after Stripe reports a paid checkout
 session or the x402 request ledger records a unique settled external transaction
 for the proof packet.
+
+## Release and license
+
+- [Release procedure and current version boundary](RELEASING.md)
+- MIT licensed; see [LICENSE](LICENSE)
