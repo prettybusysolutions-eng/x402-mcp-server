@@ -43,3 +43,18 @@ for the proof packet.
 
 - [Release procedure and current version boundary](RELEASING.md)
 - MIT licensed; see [LICENSE](LICENSE)
+
+## Settlement and release evidence limits
+
+Facilitator initialization failures stop paid-server startup. Revenue status is
+PARTIAL with null metrics and HTTP 503 on testnet or inaccessible accounting logs;
+it does not substitute zero for unknown revenue. Successful configured-network
+transaction headers are required, self-payer addresses are excluded, and transaction
+IDs deduplicate reported sales. Request logs no longer retain contract text or arbitrary
+customer bodies. SQLite CLI remains a runtime prerequisite.
+
+Synthetic decoder and ledger-input tests do not establish real on-chain settlement,
+delivery after settlement, refund handling, replay safety or independent payer identity.
+A controlled testnet purchase and externally funded mainnet integration remain gates.
+Dependency changes and this code are not yet a synchronized npm/GitHub release; no
+registry publication is claimed. Reconcile historic logs before using revenue metrics.

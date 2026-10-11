@@ -85,3 +85,23 @@ test('revenue loop counts only settled sales supplied by the ledger', () => {
   assert.equal(firstTarget.verified.firstTargetComplete, true);
   assert.match(firstTarget.truthBoundary, /Self-payments/);
 });
+
+test('missing settlement evidence remains partial instead of zero revenue', () => {
+  for (const count of [undefined, null, -1, NaN, 1.5]) {
+    const result = buildRevenueLoopStatus(count);
+    assert.equal(result.status, 'PARTIAL');
+    assert.equal(result.verified.grossRevenueUsdc, null);
+  }
+});
+
+test('settlement headers must report successful configured-network transactions', () => {
+  const {extractSettlementTxFromResponseHeader} = require('../server');
+  const encode = value => Buffer.from(JSON.stringify(value)).toString('base64');
+  const transaction='0x'+'a'.repeat(64);
+  assert.equal(extractSettlementTxFromResponseHeader(encode({success:true,network:'eip155:84532',transaction})),transaction);
+  for (const value of [{success:false,network:'eip155:84532',transaction},
+    {success:true,network:'eip155:8453',transaction},
+    {success:true,network:'eip155:84532',transaction:'unverified'}]) {
+    assert.equal(extractSettlementTxFromResponseHeader(encode(value)),null);
+  }
+});

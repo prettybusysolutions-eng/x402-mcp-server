@@ -1,6 +1,6 @@
 # Releasing
 
-The npm package declares `1.0.1`, but the GitHub release history is not yet synchronized to that package version. Do not claim synchronized distribution until a matching `v1.0.1` tag and release are verified.
+Source now declares unreleased `1.0.2`. The previously published package and GitHub release history are not synchronized to this source. Registry publication is withheld until real settlement/delivery/replay validation; a passing synthetic suite is insufficient.
 
 ## Required gate
 
