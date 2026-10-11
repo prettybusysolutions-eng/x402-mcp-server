@@ -227,13 +227,16 @@ function ensureRequestLogDb() {
       settlement_tx_hash TEXT,
       remote_addr TEXT,
       user_agent TEXT,
-      request_body TEXT
+      request_body TEXT,
+      network TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_request_log_ts ON request_log(ts);
     CREATE INDEX IF NOT EXISTS idx_request_log_endpoint ON request_log(endpoint);
     CREATE INDEX IF NOT EXISTS idx_request_log_payer ON request_log(payer_address);
     CREATE INDEX IF NOT EXISTS idx_request_log_tx ON request_log(settlement_tx_hash);
   `]);
+  const present = run('sqlite3', [REQUEST_LOG_DB, "SELECT count(*) FROM pragma_table_info('request_log') WHERE name='network';"]);
+  if (present !== '1') run('sqlite3', [REQUEST_LOG_DB, 'ALTER TABLE request_log ADD COLUMN network TEXT;']);
 }
 
 function extractPayerFromPaymentHeader(header) {
@@ -250,7 +253,7 @@ function extractSettlementTxFromResponseHeader(headerValue) {
   if (!headerValue) return null;
   try {
     const decoded = decodePaymentResponseHeader(String(headerValue));
-    return decoded?.transaction || null;
+    return decoded?.success === true && decoded.network === NETWORK && /^0x[0-9a-fA-F]{64}$/.test(decoded.transaction || '') ? decoded.transaction : null;
   } catch {
     return null;
   }
@@ -258,7 +261,7 @@ function extractSettlementTxFromResponseHeader(headerValue) {
 
 function insertRequestLog(fields) {
   try {
-    const sql = `INSERT INTO request_log (ts, method, endpoint, status_code, has_payment, payer_address, settlement_tx_hash, remote_addr, user_agent, request_body)
+    const sql = `INSERT INTO request_log (ts, method, endpoint, status_code, has_payment, payer_address, settlement_tx_hash, remote_addr, user_agent, request_body, network)
       VALUES (
         ${safeSql(fields.ts)},
         ${safeSql(fields.method)},
@@ -269,7 +272,8 @@ function insertRequestLog(fields) {
         ${safeSql(fields.settlementTxHash)},
         ${safeSql(fields.remoteAddr)},
         ${safeSql(fields.userAgent)},
-        ${safeSql(fields.requestBody)}
+        ${safeSql(fields.requestBody)},
+        ${safeSql(NETWORK)}
       );`;
     execFileSync('sqlite3', [REQUEST_LOG_DB, sql], { encoding: 'utf8', timeout: 8000 });
   } catch (error) {
@@ -278,23 +282,32 @@ function insertRequestLog(fields) {
 }
 
 function settledPreflightSales() {
+  if (!IS_MAINNET) return null; // Testnet tokens do not establish commercial revenue.
   try {
     const value = run('sqlite3', [
       REQUEST_LOG_DB,
       `SELECT COUNT(DISTINCT settlement_tx_hash)
        FROM request_log
        WHERE endpoint = '/revenue-friction-preflight'
+         AND network = ${safeSql(NETWORK)}
          AND status_code BETWEEN 200 AND 299
          AND settlement_tx_hash IS NOT NULL
-         AND settlement_tx_hash != '';`,
+         AND settlement_tx_hash != ''
+         AND payer_address IS NOT NULL
+         AND lower(payer_address) != lower(${safeSql(WALLET_ADDRESS)});`,
     ]);
-    return Number(value) || 0;
+    const count = Number(value);
+    return Number.isSafeInteger(count) && count >= 0 ? count : null;
   } catch {
-    return 0;
+    return null;
   }
 }
 
-function buildRevenueLoopStatus(settledSales = 0) {
+function buildRevenueLoopStatus(settledSales = null) {
+  if (!Number.isSafeInteger(settledSales) || settledSales < 0) {
+    return { ok: false, status: 'PARTIAL', verified: {uniqueSettledSales: null, grossRevenueUsdc: null, firstTargetComplete: null},
+      truthBoundary: 'Mainnet external settlement evidence is unavailable. Testnet activity and inaccessible logs do not prove zero or positive commercial revenue.' };
+  }
   const verifiedGrossUsdc = settledSales * PREFLIGHT_PRICE_USDC;
   const salesPerTarget = Math.ceil(DAILY_REVENUE_TARGET_USDC / PREFLIGHT_PRICE_USDC);
   return {
@@ -345,7 +358,7 @@ function createRequestLogger() {
       payerAddress: extractPayerFromPaymentHeader(req.get('payment-signature') || req.get('x-payment') || null),
       remoteAddr: req.ip || req.socket?.remoteAddress || null,
       userAgent: req.get('user-agent') || null,
-      requestBody: req.body && Object.keys(req.body).length ? JSON.stringify(req.body).slice(0, 4000) : null,
+      requestBody: null, // Do not retain contract text or arbitrary customer input in request logs.
     };
     next();
   };
@@ -1097,7 +1110,7 @@ async function start() {
   try {
     await resourceServer.initialize();
   } catch (error) {
-    console.warn('x402 resource server initialization warning:', error?.message || error);
+    throw new Error('x402 facilitator initialization failed; refusing paid execution', { cause: error });
   }
 
   app.get('/health', (req, res) => {
@@ -1125,7 +1138,8 @@ async function start() {
   });
 
   app.get('/revenue-loop', (req, res) => {
-    res.json(buildRevenueLoopStatus(settledPreflightSales()));
+    const report = buildRevenueLoopStatus(settledPreflightSales());
+    res.status(report.ok ? 200 : 503).json(report);
     flushRequestLog(req, res);
   });
 
@@ -1211,6 +1225,10 @@ module.exports = {
   buildRevenueLoopStatus,
   buildDiscovery,
   readPublicUrl,
+  extractSettlementTxFromResponseHeader,
+  ensureRequestLogDb,
+  insertRequestLog,
+  settledPreflightSales,
 };
 
 if (require.main === module) {
