@@ -10,6 +10,9 @@ on:
       - 'tests/facilitator-adapter.test.js'
       - 'lib/recovery-capability.js'
       - 'tests/recovery-capability.test.js'
+      - 'lib/recovery-controller.js'
+      - 'tests/recovery-controller.test.js'
+      - 'server.js'
       - '.github/workflows/staging-fulfillment-ledger.yml'
   pull_request:
     paths:
@@ -19,6 +22,9 @@ on:
       - 'tests/facilitator-adapter.test.js'
       - 'lib/recovery-capability.js'
       - 'tests/recovery-capability.test.js'
+      - 'lib/recovery-controller.js'
+      - 'tests/recovery-controller.test.js'
+      - 'server.js'
       - '.github/workflows/staging-fulfillment-ledger.yml'
   workflow_dispatch:
 permissions:
@@ -46,6 +52,6 @@ jobs:
         env:
           CI: 'true'
         run: |
-          node --test tests/fulfillment-ledger.test.js tests/facilitator-adapter.test.js tests/recovery-capability.test.js
+          node --test tests/fulfillment-ledger.test.js tests/facilitator-adapter.test.js tests/recovery-capability.test.js tests/recovery-controller.test.js
       - name: Run full repository test suite
         run: npm test
