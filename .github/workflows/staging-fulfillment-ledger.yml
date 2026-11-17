@@ -14,6 +14,7 @@ on:
       - 'tests/recovery-controller.test.js'
       - 'server.js'
       - 'scripts/inspect-x402-surface.cjs'
+      - 'tests/x402-settlement-lifecycle.test.js'
       - '.github/workflows/staging-fulfillment-ledger.yml'
   pull_request:
     paths:
@@ -27,6 +28,7 @@ on:
       - 'tests/recovery-controller.test.js'
       - 'server.js'
       - 'scripts/inspect-x402-surface.cjs'
+      - 'tests/x402-settlement-lifecycle.test.js'
       - '.github/workflows/staging-fulfillment-ledger.yml'
   workflow_dispatch:
 permissions:
@@ -56,6 +58,6 @@ jobs:
         env:
           CI: 'true'
         run: |
-          node --test tests/fulfillment-ledger.test.js tests/facilitator-adapter.test.js tests/recovery-capability.test.js tests/recovery-controller.test.js
+          node --test tests/fulfillment-ledger.test.js tests/facilitator-adapter.test.js tests/recovery-capability.test.js tests/recovery-controller.test.js tests/x402-settlement-lifecycle.test.js
       - name: Run full repository test suite
         run: npm test
