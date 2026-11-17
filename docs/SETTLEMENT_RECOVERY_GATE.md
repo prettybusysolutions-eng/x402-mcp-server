@@ -59,3 +59,28 @@ contains no payer or authorization nonce. The recovery-capability HMAC token
 is insufficient when never delivered. The existing recovery endpoint is
 disabled by default and must stay disabled until a complete recovery path is
 tested. A successful unit suite is not proof of settlement safety.
+
+## Version-pinned lifecycle findings (PR #40; @x402/* 2.28.0)
+
+The real-middleware/fake-facilitator integration suite verifies the strict order
+verify -> handler -> onBeforeSettle -> facilitator.settle -> onAfterSettle.
+The after-handler pre-settlement hook can inspect the buffered response, payer,
+nonce and effective settlement requirements.
+
+**Critical fail-closed rule:** returning {abort:true} prevents facilitator
+settlement, but does NOT call onVerifiedPaymentCanceled, onSettleFailure or
+onAfterSettle. Prepare-failure cleanup and logging must be explicit. Throwing
+from onBeforeSettle does NOT abort settlement: the exception is logged and
+settlement continues. Never rely on exceptions for payment safety.
+
+An Express 5 handler that returns 5xx or throws cancels verification with
+reason handler_failed, and does not settle. onAfterSettle exceptions are
+swallowed, so that hook cannot be the only durable persistence boundary.
+
+The crash probe fsyncs a PREPARED response before settlement and kills the
+process inside onAfterSettle. The persisted record survives, but the buyer
+receives no response. This is a simulated crash with a fake facilitator, not
+proof of real on-chain recovery. A settlement_pending response can be retried
+once by the middleware; an ambiguous outcome must remain UNKNOWN.
+
+PR #40 CI evidence: targeted 30/30, full suite 40/40, zero skips.
