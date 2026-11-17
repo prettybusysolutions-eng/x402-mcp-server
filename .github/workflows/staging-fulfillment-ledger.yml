@@ -15,6 +15,10 @@ on:
       - 'server.js'
       - 'scripts/inspect-x402-surface.cjs'
       - 'tests/x402-settlement-lifecycle.test.js'
+      - 'lib/prepared-ledger.js'
+      - 'tests/prepared-ledger.test.js'
+      - 'lib/prepared-settlement-hooks.js'
+      - 'tests/prepared-settlement-hooks.test.js'
       - '.github/workflows/staging-fulfillment-ledger.yml'
   pull_request:
     paths:
@@ -29,6 +33,10 @@ on:
       - 'server.js'
       - 'scripts/inspect-x402-surface.cjs'
       - 'tests/x402-settlement-lifecycle.test.js'
+      - 'lib/prepared-ledger.js'
+      - 'tests/prepared-ledger.test.js'
+      - 'lib/prepared-settlement-hooks.js'
+      - 'tests/prepared-settlement-hooks.test.js'
       - '.github/workflows/staging-fulfillment-ledger.yml'
   workflow_dispatch:
 permissions:
@@ -58,6 +66,6 @@ jobs:
         env:
           CI: 'true'
         run: |
-          node --test tests/fulfillment-ledger.test.js tests/facilitator-adapter.test.js tests/recovery-capability.test.js tests/recovery-controller.test.js tests/x402-settlement-lifecycle.test.js
+          node --test tests/fulfillment-ledger.test.js tests/facilitator-adapter.test.js tests/recovery-capability.test.js tests/recovery-controller.test.js tests/x402-settlement-lifecycle.test.js tests/prepared-ledger.test.js tests/prepared-settlement-hooks.test.js
       - name: Run full repository test suite
         run: npm test
