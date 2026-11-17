@@ -1,0 +1,34 @@
+name: Staging fulfillment ledger gate
+on:
+  pull_request:
+    paths:
+      - 'lib/fulfillment-ledger.js'
+      - 'tests/fulfillment-ledger.test.js'
+      - '.github/workflows/staging-fulfillment-ledger.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sqlite-ledger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install SQLite CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sqlite3
+          sqlite3 -version
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install pinned dependencies
+        run: npm ci --ignore-scripts
+      - name: Run ledger tests with real SQLite
+        run: |
+          node --test tests/fulfillment-ledger.test.js
+      - name: Run full repository test suite
+        run: npm test
