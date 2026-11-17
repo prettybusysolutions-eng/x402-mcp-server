@@ -6,11 +6,15 @@ on:
     paths:
       - 'lib/fulfillment-ledger.js'
       - 'tests/fulfillment-ledger.test.js'
+      - 'lib/facilitator-adapter.js'
+      - 'tests/facilitator-adapter.test.js'
       - '.github/workflows/staging-fulfillment-ledger.yml'
   pull_request:
     paths:
       - 'lib/fulfillment-ledger.js'
       - 'tests/fulfillment-ledger.test.js'
+      - 'lib/facilitator-adapter.js'
+      - 'tests/facilitator-adapter.test.js'
       - '.github/workflows/staging-fulfillment-ledger.yml'
   workflow_dispatch:
 permissions:
@@ -38,6 +42,6 @@ jobs:
         env:
           CI: 'true'
         run: |
-          node --test tests/fulfillment-ledger.test.js
+          node --test tests/fulfillment-ledger.test.js tests/facilitator-adapter.test.js
       - name: Run full repository test suite
         run: npm test
