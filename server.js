@@ -1167,6 +1167,20 @@ async function start() {
     flushRequestLog(req, res);
   });
 
+  // Staging-only recovery. Disabled unless explicitly configured with a strong key.
+  // This route is intentionally placed BEFORE the x402 payment wall.
+  // No token is issued here: issuance must be bound to trusted settlement.
+  if (process.env.X402_ENABLE_RECOVERY === '1') {
+    const keyHex = process.env.X402_RECOVERY_HMAC_KEY_HEX || '';
+    if (!/^[a-fA-F0-9]{64,}$/.test(keyHex) || keyHex.length % 2 !== 0) {
+      throw new Error('Recovery enabled without a valid >=32-byte hex signing key');
+    }
+    const { FulfillmentLedger } = require('./lib/fulfillment-ledger');
+    const { createRecoveryHandler } = require('./lib/recovery-controller');
+    const ledger = new FulfillmentLedger(process.env.X402_FULFILLMENT_DB || path.join(ROOT, 'fulfillment.sqlite3'));
+    app.post('/recover', createRecoveryHandler({ ledger, key: Buffer.from(keyHex, 'hex'), network: NETWORK }));
+  }
+
   app.use(paymentMiddleware(makeRoutesConfig(), resourceServer, {
     appName: 'Xzenia Enrichment API',
     currentUrl: readPublicUrl() || undefined,
