@@ -1,0 +1,63 @@
+name: Staging fulfillment ledger gate
+on:
+  push:
+    branches:
+      - 'staging/fulfillment-recovery-gate'
+    paths:
+      - 'lib/fulfillment-ledger.js'
+      - 'tests/fulfillment-ledger.test.js'
+      - 'lib/facilitator-adapter.js'
+      - 'tests/facilitator-adapter.test.js'
+      - 'lib/recovery-capability.js'
+      - 'tests/recovery-capability.test.js'
+      - 'lib/recovery-controller.js'
+      - 'tests/recovery-controller.test.js'
+      - 'server.js'
+      - 'scripts/inspect-x402-surface.cjs'
+      - 'tests/x402-settlement-lifecycle.test.js'
+      - '.github/workflows/staging-fulfillment-ledger.yml'
+  pull_request:
+    paths:
+      - 'lib/fulfillment-ledger.js'
+      - 'tests/fulfillment-ledger.test.js'
+      - 'lib/facilitator-adapter.js'
+      - 'tests/facilitator-adapter.test.js'
+      - 'lib/recovery-capability.js'
+      - 'tests/recovery-capability.test.js'
+      - 'lib/recovery-controller.js'
+      - 'tests/recovery-controller.test.js'
+      - 'server.js'
+      - 'scripts/inspect-x402-surface.cjs'
+      - 'tests/x402-settlement-lifecycle.test.js'
+      - '.github/workflows/staging-fulfillment-ledger.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sqlite-ledger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install SQLite CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sqlite3
+          sqlite3 -version
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install pinned dependencies
+        run: npm ci --ignore-scripts
+      - name: Inspect installed x402 Express API surface
+        run: node scripts/inspect-x402-surface.cjs
+      - name: Run ledger tests with real SQLite
+        env:
+          CI: 'true'
+        run: |
+          node --test tests/fulfillment-ledger.test.js tests/facilitator-adapter.test.js tests/recovery-capability.test.js tests/recovery-controller.test.js tests/x402-settlement-lifecycle.test.js
+      - name: Run full repository test suite
+        run: npm test
